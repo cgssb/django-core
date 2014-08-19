@@ -1,5 +1,5 @@
 =============================
- celery.result
+ core.models
 =============================
 .. contents::
     :local:
