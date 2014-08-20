@@ -8,3 +8,7 @@
 
 .. automodule:: core.models
     :members:
+
+.. autoclass:: core.models.CoreQuerySet
+    :members:
+
