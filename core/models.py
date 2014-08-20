@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.exceptions import ValidationError, NON_FIELD_ERRORS
 from django_extensions.db import fields as djefields
 import datetime
 import os
@@ -49,6 +50,9 @@ class CoreQuerySet(models.query.QuerySet):
         """
         return self.filter(is_active=False)
 
+    def get_current(self, begin_field='date_begin', end_field='date_end', as_of=None):
+        return self.current(begin_field, end_field, as_of).get()
+
     def current(self, begin_field='date_begin', end_field='date_end', as_of=None):
         """ 
         Filter for objects where as_of falls between begin_field, end_field.
@@ -95,7 +99,9 @@ class CoreQuerySet(models.query.QuerySet):
 
 
 class CoreModel(models.Model):
-    """ Abstract model that provides a uuid key and created/modified timestamps """
+    """ 
+    Abstract model that provides a uuid key and created/modified timestamps.
+    """
     created = djefields.CreationDateTimeField(auto_now_add=True)
     modified = djefields.ModificationDateTimeField(auto_now=True)
     key = djefields.UUIDField()
@@ -118,4 +124,23 @@ class CoreModel(models.Model):
     class Meta:
         get_latest_by = 'created'
         abstract = True
+
+
+class HistoryCoreModel(CoreModel):
+    date_begin = models.DateField(blank=True, null=True)
+    date_end = models.DateField(blank=True, null=True)
+
+    class Meta(CoreModel.Meta):
+        abstract = True
+
+    def clean(self):
+        if self.date_begin and self.date_end:
+            if self.date_end < self.date_begin:
+                raise ValidationError("Can't have a begin date AFTER an end date")
+        f = { self.history_key: getattr(self, self.history_key) }
+        full_history = self.__class__._default_manager.filter(**f)
+        if self.pk:
+            full_history = full_history.exclude(pk=self.pk)
+        if full_history.current(as_of=self.date_begin).exists() or full_history.current(as_of=self.date_end).exists():
+            raise ValidationError("Can't have overlapping history dates for %s" % self)
 
