@@ -23,6 +23,7 @@ TEMPLATE_DEBUG = True
 
 ALLOWED_HOSTS = []
 
+SECRET_KEY = 'notsosecret'
 
 # Application definition
 
