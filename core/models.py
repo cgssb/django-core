@@ -1,12 +1,14 @@
 from django.db import models
-from django.core.exceptions import ValidationError, NON_FIELD_ERRORS
+from django.core.exceptions import ValidationError
 from django_extensions.db import fields as djefields
 import datetime
 import os
 import uuid
 
 def uuid_upload_to(dirname):
-    """ Give an uploaded file a nice generic uuid filename """
+    """ 
+    Give an uploaded file a nice generic uuid filename 
+    """
     def func(instance, filename):
         ext = filename.split('.')[-1].lower()
         filename = "%s.%s" % (uuid.uuid4(), ext)
@@ -14,51 +16,62 @@ def uuid_upload_to(dirname):
     return func
 
 class CoreQuerySet(models.query.QuerySet):
+    """ 
+    A few enahancements from the stock ModelManager.
+
+    Esp.  get_current(), current(), past(), and future()
+    """
     def published(self):
         """
-        File for objects where is_published=True
+        Only objects that is_published=True
         """
         return self.filter(is_published=True)
 
     def unpublished(self):
         """
-        File for objects where is_published=False
+        Only objects that is_published=False
         """
         return self.filter(is_published=False)
 
     def valid(self):
         """
-        File for objects where is_valid=True
+        Only objects that is_valid=True
         """
         return self.filter(is_valid=True)
 
     def invalid(self):
         """
-        File for objects where is_valid=False
+        Only objects that is_valid=False
         """
         return self.filter(is_valid=False)
 
     def active(self):
         """
-        File for objects where is_active=True
+        Only objects that is_active=True
         """
         return self.filter(is_active=True)
 
     def inactive(self):
         """
-        File for objects where is_active=False
+        Only objects that is_active=False
         """
         return self.filter(is_active=False)
 
     def get_current(self, begin_field='date_begin', end_field='date_end', as_of=None):
+        """
+        Return the queryset object whose as_of date falls between begin_field, end_field 
+
+        This assumes there is no overlap in begin,end ranges
+
+        """
         return self.current(begin_field, end_field, as_of).get()
 
     def current(self, begin_field='date_begin', end_field='date_end', as_of=None):
         """ 
-        Filter for objects where as_of falls between begin_field, end_field.
-        begin_field -> inclusive
-        end_field -> not inclusive
+        Filter for objects where as_of falls between begin_field (inclusive), end_field (not exclusive).
+
         begin_field and end_field can be None
+
         """
         if as_of is None:
             as_of = datetime.datetime.now()
@@ -127,6 +140,24 @@ class CoreModel(models.Model):
 
 
 class HistoryCoreModel(CoreModel):
+    """
+    Abstract model extending CoreModel to include (optional, non-overlapping) date_begin and date_end fields::
+
+      date_begin = models.DateField(blank=True, null=True)
+      date_end = models.DateField(blank=True, null=True)
+
+    Need to include a "history_key=" attribute containing the name of the model field to be used in the filter when checking for overlapping date ranges.
+
+    Example::
+
+      class Membership(HistoryCoreModel):
+          member = models.ForeignKey(Member)
+          group = models.ForeignKey(Group)
+
+          history_key = 'member'
+          ...
+
+    """
     date_begin = models.DateField(blank=True, null=True)
     date_end = models.DateField(blank=True, null=True)
 
@@ -134,6 +165,11 @@ class HistoryCoreModel(CoreModel):
         abstract = True
 
     def clean(self):
+        """
+        Make sure self.begin_date <= self.end_date.
+
+        Make sure self.begin_date & self.end_date don't overlap with other 'history_key' objects.
+        """
         if self.date_begin and self.date_end:
             if self.date_end < self.date_begin:
                 raise ValidationError("Can't have a begin date AFTER an end date")

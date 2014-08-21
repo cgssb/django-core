@@ -1,8 +1,9 @@
 =============================
- core.models
+ core.fields
 =============================
 .. contents::
     :local:
 
-.. automodule:: core.models
+.. automodule:: core.fields
     :members:
+
