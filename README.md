@@ -1,4 +1,4 @@
-mysllis-core
+django-core
 ============
 
-MySLLIS Core
+Django Core
