@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.exceptions import ValidationError, NON_FIELD_ERRORS
+from localflavor.us.models import USStateField
 from django_extensions.db import fields as djefields
 import datetime
 import os
@@ -126,11 +127,11 @@ class CoreModel(models.Model):
         abstract = True
 
 
-class HistoryCoreModel(CoreModel):
+class HistoryModel(models.Model):
     date_begin = models.DateField(blank=True, null=True)
     date_end = models.DateField(blank=True, null=True)
 
-    class Meta(CoreModel.Meta):
+    class Meta:
         abstract = True
 
     def clean(self):
@@ -143,4 +144,26 @@ class HistoryCoreModel(CoreModel):
             full_history = full_history.exclude(pk=self.pk)
         if full_history.current(as_of=self.date_begin).exists() or full_history.current(as_of=self.date_end).exists():
             raise ValidationError("Can't have overlapping history dates for %s" % self)
+        super(HistoryModel, self).clean()
+
+
+
+class AddressModel(models.Model):
+    street = models.CharField(max_length=255, help_text='', blank=True)
+    city = models.CharField(max_length=255, default="St. Louis", blank=True)
+    state = USStateField(default="MO", blank=True, null=True)
+    zipcode = models.CharField(max_length=20, blank=True, null=True)
+
+    @property
+    def address(self):
+        return "%s %s, %s  %s" % (self.street, self.city, self.state, self.zipcode)
+
+    def __unicode__(self):
+        return u'%s' % (self.address,)
+
+    class Meta:
+        ordering = ('street',)
+        unique_together = ('street', 'zipcode')
+        abstract = True
+
 
