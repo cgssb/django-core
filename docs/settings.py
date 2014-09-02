@@ -1,5 +1,5 @@
 """
-Django settings for mysllis project.
+Django settings for cgssb project.
 
 For more information on this file, see
 https://docs.djangoproject.com/en/dev/topics/settings/
@@ -47,9 +47,9 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
 
-ROOT_URLCONF = 'mysllis.urls'
+ROOT_URLCONF = 'cgssb.urls'
 
-WSGI_APPLICATION = 'mysllis.wsgi.application'
+WSGI_APPLICATION = 'cgssb.wsgi.application'
 
 
 # Database
